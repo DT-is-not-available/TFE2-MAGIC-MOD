@@ -10,7 +10,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="icons/apple_touch_icon.png">
     <link rel="icon" type="image/png" href="icons/favicon.png">
-
+    <script>
+        window.addEventListener("error", (err) => {
+                var errorMessage = err.message + " File location: " + err.filename + "Error at line " + err.lineno + " character " + err.colno + " stack " + err.trace + ". Please report this to one of the developers of the mod!";
+                window.alert(errorMessage);
+            });
+    </script>
     <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>

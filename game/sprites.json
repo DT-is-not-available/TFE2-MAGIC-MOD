@@ -1064,6 +1064,14 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":10,"h":10},
 	"sourceSize": {"w":10,"h":10}
 },
+"spr_alchemy.png":
+{
+	"frame": {"x":90,"y":623,"w":10,"h":10},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":10,"h":10},
+	"sourceSize": {"w":10,"h":10}
+},
 "spr_hgh_block.png":
 {
 	"frame": {"x":1018,"y":183,"w":4,"h":4},
@@ -1882,7 +1890,7 @@
 },
 "spr_alchemylab_frames.png":
 {
-	"frame": {"x":70,"y":708,"w":482,"h":20},
+	"frame": {"x":1,"y":816,"w":482,"h":20},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":482,"h":20},
@@ -1890,7 +1898,7 @@
 },
 "spr_alchemylab_idle.png":
 {
-	"frame": {"x":70,"y":708,"w":42,"h":20},
+	"frame": {"x":1,"y":816,"w":42,"h":20},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},

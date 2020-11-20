@@ -4551,6 +4551,7 @@ var CitySimulation = function(city,foregroundStage,inBuildingStage,inBuildingSta
 	this.resourcePriorityManager = new simulation_ResourcePriorityManager(city);
 	this.fishes = new simulation_FishManager(this);
 	this.buildingUpgradesToUpdate = [];
+    this.alchemylevel = 0;
 	if(!Game.isLoading) {
 		this.initPossibleHobbies();
 	} else {
@@ -37425,6 +37426,24 @@ gui_CityGUI.prototype = $extend(GUI.prototype,{
 			var populationAndHappiness = new gui_GUIContainer(this,this.stage,generalStatistics);
 			populationAndHappiness.fillSecondarySize = true;
 			generalStatistics.addChild(populationAndHappiness);
+
+			var stats6 = this.city.simulation;
+			this.alchLevelButton = this.createInfoButton(function() {
+				if(_gthis.windowRelatedTo == "alchLevel") {
+					_gthis.closeWindow();
+				} else {
+					_gthis.createWindow("alchLevel");
+					gui_AlchWindow.create(_gthis.city,_gthis,_gthis.innerWindowStage,_gthis.windowInner);
+				}
+			},function() {
+				_gthis.tooltip.setText("Alchemy","Your alchemy level is " + (Math.floor(stats6.alchemylevel)) + "","Alchemy");
+			},function() {
+				return Math.floor(stats6.alchemylevel) + " (" + ((stats6.alchemylevel - Math.floor(stats6.alchemylevel))*100) + "%)";
+			},"spr_alchemy",generalStatistics,20,function() {
+				return _gthis.windowRelatedTo == "alchLevel";
+			});
+			generalStatistics.addChild(this.alchLevelButton);
+
 			var popInfoButton = this.createInfoButton(function() {
 				if(_gthis.windowRelatedTo == "popInfo") {
 					_gthis.closeWindow();
@@ -43501,6 +43520,25 @@ gui_WindowPosition.CenterOffset = function(offsetToTop) { var $x = ["CenterOffse
 gui_WindowPosition.TopLeft = ["TopLeft",3];
 gui_WindowPosition.TopLeft.toString = $estr;
 gui_WindowPosition.TopLeft.__enum__ = gui_WindowPosition;
+var gui_AlchWindow = $hxClasses["gui.AlchWindow"] = function() { };
+gui_AlchWindow.__name__ = "gui.AlchWindow";
+gui_AlchWindow.create = function(city,gui,stage,$window) {
+    gui_AlchWindow.createWindow(city,gui,stage,$window);
+};
+gui_AlchWindow.createWindow = function(city,gui,stage,$window) {
+    $window.clear();
+    gui.windowAddTitleText("Alchemy Level");
+    gui.windowAddInfoText("Your alchemy level is " + city.simulation.alchemylevel)
+    var _g = ($_=city.gui,$bind($_,$_.reloadWindow));
+    var city1 = city;
+    var gui1 = gui;
+    var stage1 = stage;
+    var window1 = $window;
+    var createWindowFunc = function() {
+        gui_WorkerDistributionWindow.createWindow(city1,gui1,stage1,window1);
+    };
+    gui.windowAddBottomButtons();
+};
 var gui_WorkerDistributionWindow = function() { };
 $hxClasses["gui.WorkerDistributionWindow"] = gui_WorkerDistributionWindow;
 gui_WorkerDistributionWindow.__name__ = ["gui","WorkerDistributionWindow"];
