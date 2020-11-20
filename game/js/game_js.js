@@ -11544,6 +11544,227 @@ buildings_Arcade.prototype = $extend(buildings_Work.prototype,{
 	}
 	,__class__: buildings_Arcade
 });
+var buildings_MagicShow = function(game,stage,bgStage,city,world,position,worldPosition,id) {
+	buildings_Work.call(this,game,stage,bgStage,city,world,position,worldPosition,id);
+	this.startTime = 12;
+	this.endTime = 23.5;
+	this.workTimePreferenceMod = 0.1;
+	this.isEntertainment = true;
+};
+$hxClasses["buildings.MagicShow"] = buildings_MagicShow;
+buildings_MagicShow.__name__ = ["buildings","MagicShow"];
+buildings_MagicShow.__interfaces__ = [buildings_IEntertainmentBuilding];
+buildings_MagicShow.__super__ = buildings_Work;
+buildings_MagicShow.prototype = $extend(buildings_Work.prototype,{
+	get_baseEntertainmentCapacity: function() {
+		return this.workers.length * 120;
+	}
+	,get_isOpen: function() {
+		if(this.workers.length == 1 && this.workers[0].currentAction == LifeAction.Work) {
+			return this.city.simulation.time.timeSinceStart / 60 % 24 < 23;
+		} else {
+			return false;
+		}
+	}
+	,get_entertainmentType: function() {
+		return 0;
+	}
+	,get_minimumNormalTimeToSpend: function() {
+		return 2.5;
+	}
+	,get_maximumNormalTimeToSpend: function() {
+		return 3;
+	}
+	,get_minimumEntertainmentGroupSatisfy: function() {
+		return 4;
+	}
+	,get_maximumEntertainmentGroupSatisfy: function() {
+		return 7;
+	}
+	,get_entertainmentQuality: function() {
+		return 120;
+	}
+	,get_isOpenForExistingVisitors: function() {
+		return this.get_isOpen();
+	}
+	,finishEntertainment: function(citizen,timeMod) {
+		return true;
+	}
+	,beEntertained: function(citizen,timeMod) {
+		var moveFunction = function() {
+			var xx = citizen.relativeY < 5 ? 5 + 4 * random_Random.getInt(3) : 5 + 8 * random_Random.getInt(2);
+			var moveFunction1 = random_Random.getInt(xx,xx + 1);
+			var moveFunction2 = random_Random.getInt(100,120);
+			citizen.moveAndWait(moveFunction1,moveFunction2,null,false,false);
+		};
+		if(random_Random.getInt(3) == 1) {
+			citizen.changeFloor(moveFunction);
+		} else {
+			moveFunction();
+		}
+	}
+	,work: function(citizen,timeMod,shouldStopWorking) {
+		if(shouldStopWorking) {
+			citizen.currentAction = LifeAction.Nothing;
+		} else {
+			var spd = citizen.pathWalkSpeed * timeMod;
+			Citizen.shouldUpdateDraw = true;
+			if(Math.abs(6 - citizen.relativeX) < spd) {
+				citizen.relativeX = 6;
+			} else {
+				var num = 6 - citizen.relativeX;
+				citizen.relativeX += (num > 0 ? 1 : num < 0 ? -1 : 0) * spd;
+			}
+		}
+	}
+	,save: function(queue,shouldSaveDefinition) {
+		if(shouldSaveDefinition == null) {
+			shouldSaveDefinition = true;
+		}
+		buildings_Work.prototype.save.call(this,queue);
+		if(shouldSaveDefinition) {
+			queue.addString(buildings_MagicShow.saveDefinition);
+		}
+	}
+	,load: function(queue,definition) {
+		buildings_Work.prototype.load.call(this,queue);
+		if(definition == null) {
+			var byteToRead = queue.bytes.b[queue.readStart];
+			queue.readStart += 1;
+			if(byteToRead == 1) {
+				var intToRead = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var readPos = intToRead;
+				var stringLength = queue.bytes.getInt32(readPos);
+				definition = queue.bytes.getString(readPos + 4,stringLength);
+			} else {
+				var intToRead1 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var len = intToRead1;
+				var str = queue.bytes.getString(queue.readStart,len);
+				queue.readStart += len;
+				definition = str;
+			}
+		} else {
+			definition = definition;
+		}
+		var loadMap = new haxe_ds_StringMap();
+		var _g = 0;
+		var _g1 = definition.split("|");
+		while(_g < _g1.length) {
+			var varAndType = _g1[_g];
+			++_g;
+			if(varAndType == "") {
+				continue;
+			}
+			var varAndTypeArray = varAndType.split("$");
+			var res;
+			var _g2 = varAndTypeArray[1];
+			switch(_g2) {
+			case "Bool":
+				var intToRead2 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				if(intToRead2 == 1) {
+					res = true;
+				} else {
+					res = false;
+				}
+				break;
+			case "FPoint":
+				res = queue.readFPoint();
+				break;
+			case "Float":
+				var floatToRead = queue.bytes.getDouble(queue.readStart);
+				queue.readStart += 8;
+				res = floatToRead;
+				break;
+			case "Int":
+				var intToRead3 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				res = intToRead3;
+				break;
+			case "Point":
+				res = queue.readPoint();
+				break;
+			case "Rectangle":
+				res = queue.readRectangle();
+				break;
+			case "String":
+				var value;
+				var byteToRead1 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead1 == 1) {
+					var intToRead4 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos1 = intToRead4;
+					var stringLength1 = queue.bytes.getInt32(readPos1);
+					value = queue.bytes.getString(readPos1 + 4,stringLength1);
+				} else {
+					var intToRead5 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len1 = intToRead5;
+					var str1 = queue.bytes.getString(queue.readStart,len1);
+					queue.readStart += len1;
+					value = str1;
+				}
+				res = value;
+				break;
+			case "ds":
+				var res1;
+				var byteToRead2 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead2 == 1) {
+					var intToRead6 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos2 = intToRead6;
+					var stringLength2 = queue.bytes.getInt32(readPos2);
+					res1 = queue.bytes.getString(readPos2 + 4,stringLength2);
+				} else {
+					var intToRead7 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len2 = intToRead7;
+					var str2 = queue.bytes.getString(queue.readStart,len2);
+					queue.readStart += len2;
+					res1 = str2;
+				}
+				res = haxe_Unserializer.run(res1);
+				break;
+			default:
+				var typeName = _g2;
+				var resolvedEnum = Type.resolveEnum(typeName);
+				if(resolvedEnum != null) {
+					var res2;
+					var byteToRead3 = queue.bytes.b[queue.readStart];
+					queue.readStart += 1;
+					if(byteToRead3 == 1) {
+						var intToRead8 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var readPos3 = intToRead8;
+						var stringLength3 = queue.bytes.getInt32(readPos3);
+						res2 = queue.bytes.getString(readPos3 + 4,stringLength3);
+					} else {
+						var intToRead9 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var len3 = intToRead9;
+						var str3 = queue.bytes.getString(queue.readStart,len3);
+						queue.readStart += len3;
+						res2 = str3;
+					}
+					res = Type.createEnum(resolvedEnum,res2);
+				} else {
+					throw new js__$Boot_HaxeError("That type isn't supported while loading the game!");
+				}
+			}
+			var key = varAndTypeArray[0];
+			if(__map_reserved[key] != null) {
+				loadMap.setReserved(key,res);
+			} else {
+				loadMap.h[key] = res;
+			}
+		}
+	}
+	,__class__: buildings_MagicShow
+});
 var buildings_WorkWithHome = function(game,stage,bgStage,city,world,position,worldPosition,id) {
 	this.yearsToLiveLongerPerYearIfLivingHere = 0.0;
 	this.residents = [];
@@ -59127,6 +59348,9 @@ buildings_Aquarium.gardenTextureSets = [2];
 buildings_Aquarium.openTime = 6.0;
 buildings_Aquarium.closeTime = 23;
 buildings_Aquarium.saveDefinition = "currentTexture$Int";
+buildings_MagicShow.spriteName = "spr_magicshow";
+buildings_MagicShow.closeTime = 23;
+buildings_MagicShow.saveDefinition = "";
 buildings_Arcade.spriteName = "spr_arcade";
 buildings_Arcade.closeTime = 23;
 buildings_Arcade.saveDefinition = "";

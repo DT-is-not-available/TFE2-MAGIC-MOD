@@ -802,6 +802,21 @@
         "specialInfo": []
     },
     {
+        "className": "MagicShow",
+        "name": "Magic Show",
+        "description": "magical.",
+        "food": 0,
+        "wood": -100,
+        "stone": -500,
+        "machineParts": -50,
+        "refinedMetal": 0,
+        "computerChips": -40,
+        "knowledge": -10000,
+        "category": "Entertainment",
+        "unlockedByDefault": true,
+        "specialInfo": []
+    },
+    {
         "className": "Workshop",
         "name": "Workshop",
         "description": "Makes all machine parts factories in your city work faster. Also, workers can gather knowledge or produce machine parts from wood.",
