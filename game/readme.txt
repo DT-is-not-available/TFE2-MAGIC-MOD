@@ -1,0 +1,1 @@
+A default template mod for The Final Earth 2. Make sure to remove all unmodified files for compatability with other mods.
