@@ -1872,25 +1872,49 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
 	"sourceSize": {"w":42,"h":20}
 },
-"spr_darkarcanediscovery.png":
+"spr_alchemylab.png":
 {
-	"frame": {"x":2,"y":696,"w":64,"h":20},
+	"frame": {"x":2,"y":768,"w":64,"h":20},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":20},
 	"sourceSize": {"w":64,"h":20}
 },
-"spr_darkarcanediscovery_frames.png":
+"spr_alchemylab_frames.png":
 {
-	"frame": {"x":70,"y":660,"w":174,"h":20},
+	"frame": {"x":70,"y":708,"w":482,"h":20},
 	"rotated": false,
 	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":174,"h":20},
-	"sourceSize": {"w":174,"h":20}
+	"spriteSourceSize": {"x":0,"y":0,"w":482,"h":20},
+	"sourceSize": {"w":482,"h":20}
 },
-"spr_darkarcanediscovery_idle.png":
+"spr_alchemylab_idle.png":
 {
-	"frame": {"x":70,"y":660,"w":42,"h":20},
+	"frame": {"x":70,"y":708,"w":42,"h":20},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
+	"sourceSize": {"w":42,"h":20}
+},
+"spr_alchemyresearchcenter.png":
+{
+	"frame": {"x":2,"y":792,"w":64,"h":20},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":20},
+	"sourceSize": {"w":64,"h":20}
+},
+"spr_alchemyresearchcenter_frames.png":
+{
+	"frame": {"x":70,"y":684,"w":42,"h":20},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
+	"sourceSize": {"w":42,"h":20}
+},
+"spr_alchemyresearchcenter_idle.png":
+{
+	"frame": {"x":70,"y":684,"w":42,"h":20},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
