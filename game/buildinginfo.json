@@ -588,6 +588,20 @@
         "showUnlockHint": "Build a Refined Metals Factory to unlock!"
     },
     {
+        "className": "ArcaneUniversity",
+        "name": "Arcane University",
+        "description": "Educates people aged 16-24, improving how effective they'll be at some jobs later. Also produces magic",
+        "food": 0,
+        "wood": -20,
+        "stone": -10,
+        "machineParts": 0,
+        "knowledge": 0,
+        "category": "Services",
+        "unlockedByDefault": true,
+        "specialInfo": [],
+        "jobs": 1
+    },
+    {
         "className": "Pub",
         "name": "Pub",
         "description": "A great place for people to get together.",
@@ -814,7 +828,8 @@
         "knowledge": -10000,
         "category": "Entertainment",
         "unlockedByDefault": true,
-        "specialInfo": []
+        "specialInfo": [],
+        "jobs": 1
     },
     {
         "className": "Workshop",

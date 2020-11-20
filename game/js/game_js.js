@@ -1982,7 +1982,7 @@ var Citizen = function(city,simulation1,foregroundStage,inBuildingStage,inBuildi
 	Citizen.spriteCitizens.set(this.sprite,this);
 	this.sprite.anchor.y = 1;
 	Citizen.shouldUpdateDraw = true;
-	if(!Game.isLoading && this.get_age() >= 16) {
+	if(!Game.isLoading && this.get_age() >= 25) {
 		this.addToWorkers();
 	}
 	if(startInPermanent != null) {
@@ -2272,7 +2272,7 @@ Citizen.prototype = {
 	}
 	,infrequentUpdate: function() {
 		this.setCurrentTexture();
-		if(this.lastInfrequentUpdateAge < 16 && this.get_age() >= 16 && this.job == null) {
+		if(this.lastInfrequentUpdateAge < 24 && this.get_age() >= 24 && this.job == null) {
 			this.addToWorkers();
 		}
 		this.lastInfrequentUpdateAge = this.get_age();
@@ -4631,6 +4631,7 @@ CitySimulation.prototype = {
 		var timeMod = this.prevTimeMod;
 		this.jobAssigner.assignJobs();
 		this.schoolAssigner.assignSchools();
+		this.schoolAssigner.assignUniversities();
 		this.houseAssigner.assignHouses();
 		this.happiness.update(timeMod);
 		this.eating.update(timeMod);
@@ -4953,7 +4954,7 @@ CitySimulation.prototype = {
 				if(c1.job != null) {
 					c1.job.workers.push(c1);
 				}
-			} else if(c1.get_age() > 16) {
+			} else if(c1.get_age() > 24) {
 				this.jobAssigner.citizensWithoutJob.push(c1);
 			}
 			var intToRead7 = queue.bytes.getInt32(queue.readStart);
@@ -26812,6 +26813,84 @@ buildings_Restaurant.prototype = $extend(buildings_Work.prototype,{
 	}
 	,__class__: buildings_Restaurant
 });
+var buildings_ArcaneUniversity = function(game,stage,bgStage,city,world,position,worldPosition,id) {
+	this.studentCapacity = 15;
+	this.schoolEndTime = 16;
+	this.schoolStartTime = 7;
+	buildings_Work.call(this,game,stage,bgStage,city,world,position,worldPosition,id);
+	this.students = [];
+};
+$hxClasses["buildings.ArcaneUniversity"] = buildings_ArcaneUniversity;
+buildings_ArcaneUniversity.__name__ = ["buildings","ArcaneUniversity"];
+buildings_ArcaneUniversity.__super__ = buildings_Work;
+buildings_ArcaneUniversity.prototype = $extend(buildings_Work.prototype,{
+	work: function(citizen,timeMod,shouldStopWorking) {
+		if(shouldStopWorking) {
+			citizen.currentAction = LifeAction.Nothing;
+			return;
+		}
+		var spd = citizen.pathWalkSpeed * timeMod;
+		Citizen.shouldUpdateDraw = true;
+		if(Math.abs(3 - citizen.relativeX) < spd) {
+			citizen.relativeX = 3;
+		} else {
+			var num = 3 - citizen.relativeX;
+			citizen.relativeX += (num > 0 ? 1 : num < 0 ? -1 : 0) * spd;
+		}
+	}
+	,addWindowInfoLines: function() {
+		var _gthis = this;
+		buildings_Work.prototype.addWindowInfoLines.call(this);
+		this.city.gui.windowAddInfoText(null,function() {
+			return "" + _gthis.students.length + "/" + _gthis.studentCapacity + " students";
+		});
+	}
+	,destroy: function() {
+		buildings_Work.prototype.destroy.call(this);
+		var i = this.students.length;
+		while(--i >= 0) {
+			var student = this.students[i];
+			student.leaveSchool();
+		}
+	}
+	,afterGiveJob: function(citizen) {
+		this.city.simulation.schoolAssigner.schoolsShouldBeUpdated = true;
+	}
+	,beAtSchool: function(citizen,timeMod) {
+		if(!citizen.hasBuildingInited) {
+			var i = this.students.indexOf(citizen);
+			var _g = i % 3;
+			switch(_g) {
+			case 0:
+				var moveToX = random_Random.getInt(6,7);
+				var pool = pooling_Int32ArrayPool.pool;
+				var arr = pool[2].length > 0 ? pool[2].splice(pool[2].length - 1,1)[0] : new Int32Array(2);
+				arr[0] = 4;
+				arr[1] = moveToX;
+				citizen.setPath(arr,0,2,true);
+				citizen.pathEndFunction = null;
+				citizen.pathOnlyRelatedTo = citizen.inPermanent;
+				break;
+			case 1:
+				citizen.changeFloorAndMoveRandom(3,7);
+				break;
+			case 2:
+				var moveToX1 = random_Random.getInt(12,16);
+				var pool1 = pooling_Int32ArrayPool.pool;
+				var arr1 = pool1[2].length > 0 ? pool1[2].splice(pool1[2].length - 1,1)[0] : new Int32Array(2);
+				arr1[0] = 4;
+				arr1[1] = moveToX1;
+				citizen.setPath(arr1,0,2,true);
+				citizen.pathEndFunction = null;
+				citizen.pathOnlyRelatedTo = citizen.inPermanent;
+				break;
+			}
+			citizen.educationLevel = Math.max(Math.min(citizen.educationLevel + 0.07,1),citizen.educationLevel);
+			citizen.hasBuildingInited = true;
+		}
+	}
+	,__class__: buildings_ArcaneUniversity
+});
 var buildings_School = function(game,stage,bgStage,city,world,position,worldPosition,id) {
 	this.studentCapacity = 30;
 	this.schoolEndTime = 16;
@@ -33240,7 +33319,22 @@ cityActions_ChangeCitizenVitalBuildings.prototype = $extend(cityActions_CitySpec
 							theSchool.students.push(this.citizen);
 						}
 					}
-				}
+				}else{
+                    var uni = pm;
+                    if(pm["is"](buildings_ArcaneUniversity)){
+                        if(this.citizen.get_age()>=16&&this.citizen.get_age()<24){
+                            var theUni = uni;
+                            if(this.citizen.school!=theUni){
+                                if(theUni.students.length>=theUni.studentCapacity){
+                                    theUni.students[0].leaveSchool();
+                                }
+                                this.citizen.leaveSchool();
+                                this.citizen.school = theUni;
+                                theUni.students.push(this.citizen);
+                            }
+                        }
+                    }
+                }
 			}
 		}
 	}
@@ -37375,7 +37469,7 @@ gui_CityGUI.prototype = $extend(GUI.prototype,{
 					boostPart += boost.text + ": " + (boost.boost | 0) + "\n";
 				}
 				var _gthis1 = _gthis.tooltip;
-				var happinessBox1 = "Happy citizens work faster. They also get more children.\n" + ("Home happiness: " + (happiness.homeHappiness | 0) + "\n") + ("Sense of purpose (job/school): " + (happiness.purposeHappiness | 0) + "\n") + ("Entertainment happiness: " + (happiness.entertainmentHappiness | 0) + "\n") + ("Education happiness: " + (happiness.schoolHappiness | 0) + "\n") + ("Medical happiness: " + (happiness.medicalHappiness | 0) + "\n") + shortagePart + "" + boostPart + "" + enthusiasmPart + "\n" + ("With the current happiness, citizens work at " + common_MathExtensions.floatFormat(Math,happiness.actionSpeedModifier,2) + "x their normal speed.");
+				var happinessBox1 = "Happy citizens work faster. They also get more children.\n" + ("Home happiness: " + (happiness.homeHappiness | 0) + "\n") + ("Sense of purpose (job/school/university): " + (happiness.purposeHappiness | 0) + "\n") + ("Entertainment happiness: " + (happiness.entertainmentHappiness | 0) + "\n") + ("Education happiness: " + (happiness.schoolHappiness | 0) + "\n") + ("Medical happiness: " + (happiness.medicalHappiness | 0) + "\n") + shortagePart + "" + boostPart + "" + enthusiasmPart + "\n" + ("With the current happiness, citizens work at " + common_MathExtensions.floatFormat(Math,happiness.actionSpeedModifier,2) + "x their normal speed.");
 				_gthis1.setText(happinessBox,happinessBox1,"Happiness");
 			},function() {
 				if(_gthis.city.simulation.happiness.happiness >= 99.99) {
@@ -37648,7 +37742,7 @@ gui_CityGUI.prototype = $extend(GUI.prototype,{
 							boostPart += boost.text + ": " + (boost.boost | 0) + "\n";
 						}
 						var _gthis2 = _gthis1.tooltip;
-						var happinessBox1 = "Happy citizens work faster. They also get more children.\n" + ("Home happiness: " + (happiness.homeHappiness | 0) + "\n") + ("Sense of purpose (job/school): " + (happiness.purposeHappiness | 0) + "\n") + ("Entertainment happiness: " + (happiness.entertainmentHappiness | 0) + "\n") + ("Education happiness: " + (happiness.schoolHappiness | 0) + "\n") + ("Medical happiness: " + (happiness.medicalHappiness | 0) + "\n") + shortagePart + "" + boostPart + "" + enthusiasmPart + "\n" + ("With the current happiness, citizens work at " + common_MathExtensions.floatFormat(Math,happiness.actionSpeedModifier,2) + "x their normal speed.");
+						var happinessBox1 = "Happy citizens work faster. They also get more children.\n" + ("Home happiness: " + (happiness.homeHappiness | 0) + "\n") + ("Sense of purpose (job/school/university): " + (happiness.purposeHappiness | 0) + "\n") + ("Entertainment happiness: " + (happiness.entertainmentHappiness | 0) + "\n") + ("Education happiness: " + (happiness.schoolHappiness | 0) + "\n") + ("Medical happiness: " + (happiness.medicalHappiness | 0) + "\n") + shortagePart + "" + boostPart + "" + enthusiasmPart + "\n" + ("With the current happiness, citizens work at " + common_MathExtensions.floatFormat(Math,happiness.actionSpeedModifier,2) + "x their normal speed.");
 						_gthis2.setText(happinessBox,happinessBox1,"Happiness");
 					},function() {
 						if(_gthis1.city.simulation.happiness.happiness >= 99.99) {
@@ -39391,7 +39485,7 @@ gui_FollowingCitizen.createWindow = function(city,citizen,clearWindowStack) {
 		var educationLevelDescription = citizen.educationLevel < 0.01 ? "None" : citizen.educationLevel < 0.1 ? "Poor" : citizen.educationLevel < 0.2 ? "Weak" : citizen.educationLevel < 0.4 ? "Limited" : citizen.educationLevel < 0.6 ? "Moderate" : citizen.educationLevel < 0.7 ? "Fair" : citizen.educationLevel < 0.8 ? "Good" : citizen.educationLevel < 1 ? "Very Good" : citizen.educationLevel <= 1.005 ? "Great" : citizen.educationLevel <= 1.2 ? "Superior" : citizen.educationLevel < 1.4 ? "Excellent" : citizen.educationLevel < 1.6 ? "Exceptional" : citizen.educationLevel < 1.8 ? "Amazing" : citizen.educationLevel < 2 ? "Incredible" : citizen.educationLevel < 2.2 ? "World-Class" : "Phenomenal";
 		return "Age: " + Math.floor(citizen.get_age()) + "\nEducation: " + educationLevelDescription;
 	}));
-	var citizenCanWork = citizen.get_age() >= 16 && citizen.school == null;
+	var citizenCanWork = citizen.get_age() > 24 && citizen.school == null;
 	var addedButtons = city.gui.windowAddBottomButtons([{ text : citizenCanWork ? "Change Home/Job" : "Change Home/School", action : function() {
 		gui_FollowingCitizen.createChangeHomeAndWorkOfCitizenWindow(city,citizen);
 	}}]);
@@ -39404,7 +39498,7 @@ gui_FollowingCitizen.createWindow = function(city,citizen,clearWindowStack) {
 			gui_FollowingCitizen.onCitizenDie(city,citizen,nameIdentifier,windowTitle);
 			return;
 		}
-		if(!citizenCanWork && (citizen.get_age() >= 16 && citizen.school == null)) {
+		if(!citizenCanWork && (citizen.get_age() > 24 && citizen.school == null)) {
 			addedButtons[0].setText("Change Home/Job");
 			citizenCanWork = true;
 		}
@@ -39452,7 +39546,7 @@ gui_FollowingCitizen.createChangeHomeAndWorkOfCitizenWindow = function(city,citi
 	};
 	city.gui.addWindowToStack(tmp1);
 	var windowTitle = function() {
-		var citizenCanWork = citizen.get_age() >= 16 && citizen.school == null;
+		var citizenCanWork = citizen.get_age() > 25 && citizen.school == null;
 		var text = citizenCanWork ? "Change Home/Job" : "Change Home/School";
 		return text + " for " + (citizen.nameIndex < Resources.citizenNames.length ? Resources.citizenNames[citizen.nameIndex] : "Citizen");
 	};
@@ -40151,7 +40245,7 @@ gui_HappinessWindow.create = function(city,gui1,stage,window) {
 		return "" + (happiness.homeHappiness | 0);
 	});
 	addTexts(function() {
-		return "Sense of purpose (job/school):";
+		return "Sense of purpose (job/school/university):";
 	},function() {
 		return "" + (happiness.purposeHappiness | 0);
 	});
@@ -56006,7 +56100,7 @@ simulation_SchoolAssigner.prototype = {
 	assignSchools: function() {
 		if(this.schoolsShouldBeUpdated) {
 			var schoolsThatAcceptStudents = this.city.permanents.filter(function(p) {
-				if(p["is"](buildings_School) && p.students.length < p.studentCapacity) {
+				if(p["is"](buildings_ArcaneUniversity) && p.students.length < p.studentCapacity) {
 					return p.workers.length > 0;
 				} else {
 					return false;
@@ -56017,7 +56111,63 @@ simulation_SchoolAssigner.prototype = {
 					return s1.students.length - s2.students.length;
 				});
 				var possibleStudents = this.city.simulation.citizens.filter(function(c) {
-					if(c.get_age() < 16) {
+					if(c.get_age() >= 16 && c.get_age() < 25) {
+						return c.school == null;
+					} else {
+						return false;
+					}
+				});
+				var anyAssigned = true;
+				while(possibleStudents.length > 0 && anyAssigned) {
+					anyAssigned = false;
+					var i = schoolsThatAcceptStudents.length;
+					while(--i >= 0) {
+						var school = [schoolsThatAcceptStudents[i]];
+						var correctStudent = Lambda.find(possibleStudents,(function(school1) {
+							return function(s) {
+								if(s.onWorld.worldGroup != school1[0].world.worldGroup) {
+									if(s.home != null && s.home.get_hasPrivateTeleporter()) {
+										return school1[0].world.hasTeleporterOnGroup;
+									} else {
+										return false;
+									}
+								} else {
+									return true;
+								}
+							};
+						})(school));
+						if(correctStudent != null) {
+							anyAssigned = true;
+							HxOverrides.remove(possibleStudents,correctStudent);
+							correctStudent.school = school[0];
+							school[0].students.push(correctStudent);
+							if(school[0].students.length >= school[0].studentCapacity) {
+								schoolsThatAcceptStudents.splice(i,1);
+							}
+						}
+						if(possibleStudents.length == 0) {
+							break;
+						}
+					}
+				}
+			}
+		}
+    },
+	assignUniversities: function() {
+		if(this.schoolsShouldBeUpdated) {
+			var schoolsThatAcceptStudents = this.city.permanents.filter(function(p) {
+				if(p["is"](buildings_ArcaneUniversity) && p.students.length < p.studentCapacity) {
+					return p.workers.length > 0;
+				} else {
+					return false;
+				}
+			});
+			if(schoolsThatAcceptStudents.length >= 0) {
+				schoolsThatAcceptStudents.sort(function(s1,s2) {
+					return s1.students.length - s2.students.length;
+				});
+				var possibleStudents = this.city.simulation.citizens.filter(function(c) {
+					if(c.get_age() >=16&&c.get_age()<25) {
 						return c.school == null;
 					} else {
 						return false;
@@ -56397,7 +56547,7 @@ simulation_Stats.prototype = {
 			while(_g < _g1.length) {
 				var citizen = _g1[_g];
 				++_g;
-				if(citizen.lastInfrequentUpdateAge >= 16) {
+				if(citizen.lastInfrequentUpdateAge >= 25) {
 					this.laborForce += 1;
 					if(citizen.job != null) {
 						this.peopleWithAJob += 1;
@@ -57395,7 +57545,7 @@ $hxClasses["simulation.festival.MusicFestival"] = simulation_festival_MusicFesti
 simulation_festival_MusicFestival.__name__ = ["simulation","festival","MusicFestival"];
 simulation_festival_MusicFestival.involvedCitizens = function(simulation1) {
 	return simulation1.citizens.filter(function(c) {
-		if(c.get_age() > 18) {
+		if(c.get_age() > 24) {
 			if(c.job != null) {
 				return !c.job["is"](buildings_School);
 			} else {
@@ -57663,7 +57813,7 @@ simulation_festival_MusicFestival.relevantBuildings = function(simulation1,cente
 simulation_festival_MusicFestival.__super__ = simulation_festival_Festival;
 simulation_festival_MusicFestival.prototype = $extend(simulation_festival_Festival.prototype,{
 	isInvolvedWithFestival: function(citizen) {
-		if(citizen.get_age() > 18) {
+		if(citizen.get_age() > 24) {
 			if(citizen.job != null) {
 				return !citizen.job["is"](buildings_School);
 			} else {
@@ -59536,6 +59686,9 @@ buildings_Restaurant.closeTime = 0.5;
 buildings_School.spriteName = "spr_school";
 buildings_School.educationPerDay = 0.07;
 buildings_School.educationCap = 1;
+buildings_ArcaneUniversity.spriteName = "spr_arcaneuniversity";
+buildings_ArcaneUniversity.educationPerDay = 0.07;
+buildings_ArcaneUniversity.educationCap = 1.5;
 buildings_ScrapyardNightClub.spriteName = "spr_scrapyardnightclub";
 buildings_ScrapyardNightClub.closeTime = 6;
 buildings_ScrapyardNightClub.saveDefinition = "mainTextureLeft$Int|mainTextureOther$Int";
