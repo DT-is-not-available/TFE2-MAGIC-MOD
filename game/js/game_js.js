@@ -4551,7 +4551,7 @@ var CitySimulation = function(city,foregroundStage,inBuildingStage,inBuildingSta
 	this.resourcePriorityManager = new simulation_ResourcePriorityManager(city);
 	this.fishes = new simulation_FishManager(this);
 	this.buildingUpgradesToUpdate = [];
-    this.alchemylevel = 0;
+    this.alchemy = new simulation_AlchemyLevel(city,this);
 	if(!Game.isLoading) {
 		this.initPossibleHobbies();
 	} else {
@@ -4866,6 +4866,7 @@ CitySimulation.prototype = {
 		this.bonuses.save(queue);
 		this.jobAssigner.save(queue);
 		this.eating.save(queue);
+        this.alchemy.save(queue);
 		this.stats.save(queue);
 		var _g11 = 0;
 		var _g2 = this.citizens.length;
@@ -4985,6 +4986,7 @@ CitySimulation.prototype = {
 		this.bonuses.load(queue);
 		this.jobAssigner.load(queue);
 		this.eating.load(queue);
+        this.alchemy.load(queue);
 		if(queue.version >= 2) {
 			this.stats.load(queue);
 		}
@@ -37436,9 +37438,9 @@ gui_CityGUI.prototype = $extend(GUI.prototype,{
 					gui_AlchWindow.create(_gthis.city,_gthis,_gthis.innerWindowStage,_gthis.windowInner);
 				}
 			},function() {
-				_gthis.tooltip.setText("Alchemy","Your alchemy level is " + (Math.floor(stats6.alchemylevel)) + "","Alchemy");
+				_gthis.tooltip.setText("Alchemy","Your alchemy level is " + (Math.floor(stats6.alchemy.level)) + "","Alchemy");
 			},function() {
-				return Math.floor(stats6.alchemylevel) + " (" + ((stats6.alchemylevel - Math.floor(stats6.alchemylevel))*100) + "%)";
+				return Math.floor(stats6.alchemy.level) + " (" + ((stats6.alchemy.level - Math.floor(stats6.alchemy.level))*100) + "%)";
 			},"spr_alchemy",generalStatistics,20,function() {
 				return _gthis.windowRelatedTo == "alchLevel";
 			});
@@ -43528,7 +43530,7 @@ gui_AlchWindow.create = function(city,gui,stage,$window) {
 gui_AlchWindow.createWindow = function(city,gui,stage,$window) {
     $window.clear();
     gui.windowAddTitleText("Alchemy Level");
-    gui.windowAddInfoText("Your alchemy level is " + city.simulation.alchemylevel)
+    gui.windowAddInfoText("Your alchemy level is " + city.simulation.alchemy.level)
     var _g = ($_=city.gui,$bind($_,$_.reloadWindow));
     var city1 = city;
     var gui1 = gui;
@@ -54195,6 +54197,177 @@ simulation_HappinessBoost.prototype = {
 	}
 	,__class__: simulation_HappinessBoost
 };
+var simulation_AlchemyLevel = function(city1,sim1) {
+    this.city=city1;
+    this.simulation = sim1;
+    this.level=5;
+};
+$hxClasses["simulation.AlchemyLevel"] = simulation_AlchemyLevel;
+simulation_AlchemyLevel.__name__ = ["simulation","AlchemyLevel"];
+simulation_AlchemyLevel.prototype = {
+	save: function(queue,shouldSaveDefinition) {
+		this.saveBasics(queue);
+	}
+	,load: function(queue) {
+		this.loadBasics(queue);
+	},
+	saveBasics: function(queue,shouldSaveDefinition) {
+		if(shouldSaveDefinition == null) {
+			shouldSaveDefinition = true;
+		}
+		if(shouldSaveDefinition) {
+			queue.addString(simulation_Happiness.saveDefinition);
+		}
+		var value = this.level;
+		if(queue.size + 8 > queue.bytes.length) {
+			var oldBytes = queue.bytes;
+			queue.bytes = new haxe_io_Bytes(new ArrayBuffer((queue.size + 8) * 2));
+			queue.bytes.blit(0,oldBytes,0,queue.size);
+		}
+		queue.bytes.setDouble(queue.size,value);
+		queue.size += 8;
+	}
+	,loadBasics: function(queue,definition) {
+		if(definition == null) {
+			var byteToRead = queue.bytes.b[queue.readStart];
+			queue.readStart += 1;
+			if(byteToRead == 1) {
+				var intToRead = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var readPos = intToRead;
+				var stringLength = queue.bytes.getInt32(readPos);
+				definition = queue.bytes.getString(readPos + 4,stringLength);
+			} else {
+				var intToRead1 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var len = intToRead1;
+				var str = queue.bytes.getString(queue.readStart,len);
+				queue.readStart += len;
+				definition = str;
+			}
+		} else {
+			definition = definition;
+		}
+		var loadMap = new haxe_ds_StringMap();
+		var _g = 0;
+		var _g1 = definition.split("|");
+		while(_g < _g1.length) {
+			var varAndType = _g1[_g];
+			++_g;
+			if(varAndType == "") {
+				continue;
+			}
+			var varAndTypeArray = varAndType.split("$");
+			var res;
+			var _g2 = varAndTypeArray[1];
+			switch(_g2) {
+			case "Bool":
+				var intToRead2 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				if(intToRead2 == 1) {
+					res = true;
+				} else {
+					res = false;
+				}
+				break;
+			case "FPoint":
+				res = queue.readFPoint();
+				break;
+			case "Float":
+				var floatToRead = queue.bytes.getDouble(queue.readStart);
+				queue.readStart += 8;
+				res = floatToRead;
+				break;
+			case "Int":
+				var intToRead3 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				res = intToRead3;
+				break;
+			case "Point":
+				res = queue.readPoint();
+				break;
+			case "Rectangle":
+				res = queue.readRectangle();
+				break;
+			case "String":
+				var value;
+				var byteToRead1 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead1 == 1) {
+					var intToRead4 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos1 = intToRead4;
+					var stringLength1 = queue.bytes.getInt32(readPos1);
+					value = queue.bytes.getString(readPos1 + 4,stringLength1);
+				} else {
+					var intToRead5 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len1 = intToRead5;
+					var str1 = queue.bytes.getString(queue.readStart,len1);
+					queue.readStart += len1;
+					value = str1;
+				}
+				res = value;
+				break;
+			case "ds":
+				var res1;
+				var byteToRead2 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead2 == 1) {
+					var intToRead6 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos2 = intToRead6;
+					var stringLength2 = queue.bytes.getInt32(readPos2);
+					res1 = queue.bytes.getString(readPos2 + 4,stringLength2);
+				} else {
+					var intToRead7 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len2 = intToRead7;
+					var str2 = queue.bytes.getString(queue.readStart,len2);
+					queue.readStart += len2;
+					res1 = str2;
+				}
+				res = haxe_Unserializer.run(res1);
+				break;
+			default:
+				var typeName = _g2;
+				var resolvedEnum = Type.resolveEnum(typeName);
+				if(resolvedEnum != null) {
+					var res2;
+					var byteToRead3 = queue.bytes.b[queue.readStart];
+					queue.readStart += 1;
+					if(byteToRead3 == 1) {
+						var intToRead8 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var readPos3 = intToRead8;
+						var stringLength3 = queue.bytes.getInt32(readPos3);
+						res2 = queue.bytes.getString(readPos3 + 4,stringLength3);
+					} else {
+						var intToRead9 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var len3 = intToRead9;
+						var str3 = queue.bytes.getString(queue.readStart,len3);
+						queue.readStart += len3;
+						res2 = str3;
+					}
+					res = Type.createEnum(resolvedEnum,res2);
+				} else {
+					throw new js__$Boot_HaxeError("That type isn't supported while loading the game!");
+				}
+			}
+			var key = varAndTypeArray[0];
+			if(__map_reserved[key] != null) {
+				loadMap.setReserved(key,res);
+			} else {
+				loadMap.h[key] = res;
+			}
+		}
+		if(__map_reserved["alchLevel"] != null ? loadMap.existsReserved("alchLevel") : loadMap.h.hasOwnProperty("alchLevel")) {
+			this.level = (__map_reserved["alchLevel"] != null ? loadMap.getReserved("alchLevel") : loadMap.h["alchLevel"]);
+		}
+	}
+	,__class__: simulation_AlchemyLevel
+};
 var simulation_HouseAssigner = function(city,simulation1) {
 	this.shouldUpdateHouses = true;
 	this.city = city;
@@ -59904,6 +60077,7 @@ simulation_Eating.saveDefinition = "foodShortage$Float";
 simulation_Fish.saveDefinition = "type$Int|relativeX$Float|relativeY$Float";
 simulation_Happiness.saveDefinition = "happiness$Float|homeHappiness$Float|purposeHappiness$Float|entertainmentHappiness$Float|schoolHappiness$Float|medicalHappiness$Float|fullHappinessTime$Float|actualHappiness$Float|happinessEnthusiasmLevel$Int|lastShownVeryUnhappyWarning$Int|veryUnhappyFromDay$Int";
 simulation_HappinessBoost.saveDefinition = "boostUntil$Float|boost$Float|text$String|canGoOverMax$Bool";
+simulation_AlchemyLevel.saveDefinition = "alchLevel$Float";
 simulation_HouseAssigner.privateTeleportersLeft = [];
 simulation_Stats.saveDefinition = "";
 simulation_citizenSpecialActions_ClimbIntoTree.fromHour = 0;
