@@ -359,6 +359,20 @@
         "jobs": 2
     },
     {
+        "className": "AlchemyResearchFacility",
+        "name": "Alchemy Research Facility",
+        "description": "Produces machine parts from stone. Three stone is needed to make one machine part.",
+        "food": 0,
+        "wood": 10,
+        "stone": 35,
+        "machineParts": 0,
+        "knowledge": 25,
+        "category": "Unique Buildings",
+        "unlockedByDefault": true,
+        "specialInfo": ["unique"],
+        "jobs": 5
+    },
+    {
         "className": "Laboratory",
         "name": "Lab",
         "description": "Scientists gather knowledge here. Also has upgrades boosting adjacent farms and tree plantations.",
@@ -528,6 +542,22 @@
         "showUnlockHint": "(this building has been scrapped earlier in development)"
     },
     {
+        "className": "ArcaneDiscoveryCenter",
+        "name": "Arcane Discovery Center",
+        "description": "Produces refined metals from stone. Five stone is needed to make one unit of refined metal.",
+        "food": 0,
+        "wood": -30000,
+        "stone": -90000,
+        "machineParts": 0,
+		"refinedMetal": -2000,
+        "knowledge": -1000000,
+		"computerChips": -500,
+        "category": "Unique Buildings",
+        "unlockedByDefault": true,
+        "specialInfo": ["unique"],
+        "jobs": 5
+    },
+    {
         "className": "School",
         "name": "School",
         "description": "Educates children, improving how effective they'll be at some jobs later.",
@@ -580,7 +610,6 @@
         "stone": -10,
         "machineParts": 0,
         "knowledge": 0,
-		"magic": -50,
         "category": "Services",
         "unlockedByDefault": true,
         "specialInfo": [],
@@ -1213,42 +1242,6 @@
         "unlockedByDefault": false,
         "specialInfo": ["unique", "rooftop"],
         "showUnlockHint": "Maintain :D or better happiness for at least fourteen days to unlock!"
-    },
-    {
-        "className": "ArcaneDiscoveryCenter",
-        "name": "Arcane Discovery Center",
-        "description": "Produces refined metals from stone. Five stone is needed to make one unit of refined metal.",
-        "food": 0,
-        "wood": -30000,
-        "stone": -90000,
-        "machineParts": 0,
-		"refinedMetal": -2000,
-        "knowledge": -1000000,
-		"computerChips": -500,
-        "category": "Unique Buildings",
-        "unlockedByDefault": true,
-        "specialInfo": ["unique"],
-        "jobs": 5
-    },
-    {
-        "className": "AlchemyResearchFacility",
-        "name": "Alchemy Research Facility",
-        "description": "Produces knowledge.!unlocks",
-        "food": 0,
-        "wood": -100,
-        "stone": -100,
-        "machineParts": -5,
-        "refinedMetal": -25,
-        "computerChips": -1,
-        "knowledge": -250,
-        "magic": -1000,
-        "category": "Unique Buildings",
-        "unlockedByDefault": true,
-        "specialInfo": [
-            "unique"
-        ],
-        "jobs": 4,
-        "showUnlockHint": "Have 1000 mana at one time to unlock!"
     },
     {
         "className": "ShadyHome",
