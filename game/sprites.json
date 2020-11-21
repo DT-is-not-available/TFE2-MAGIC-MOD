@@ -1904,7 +1904,7 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
 	"sourceSize": {"w":42,"h":20}
 },
-"spr_alchemyresearchcenter.png":
+"spr_alchemyresearchfacility.png":
 {
 	"frame": {"x":2,"y":792,"w":64,"h":20},
 	"rotated": false,
@@ -1912,7 +1912,7 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":20},
 	"sourceSize": {"w":64,"h":20}
 },
-"spr_alchemyresearchcenter_frames.png":
+"spr_alchemyresearchfacility_frames.png":
 {
 	"frame": {"x":70,"y":684,"w":42,"h":20},
 	"rotated": false,
@@ -1920,7 +1920,7 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":42,"h":20},
 	"sourceSize": {"w":42,"h":20}
 },
-"spr_alchemyresearchcenter_idle.png":
+"spr_alchemyresearchfacility_idle.png":
 {
 	"frame": {"x":70,"y":684,"w":42,"h":20},
 	"rotated": false,

@@ -23730,7 +23730,7 @@ buildings_MachinePartsFactory.prototype = $extend(buildings_MaterialConvertingFa
 	,__class__: buildings_MachinePartsFactory
 });
 var buildings_AlchemyResearchFacility = function(game,stage,bgStage,city,world,position,worldPosition,id) {
-	this.materialsMadePerStepPerWorker = 0.0015;
+	this.materialsMadePerStepPerWorker = 0.06;
 	buildings_MaterialConvertingFactory.call(this,game,stage,bgStage,city,world,position,worldPosition,id,"spr_alchemyresearchfacility_frames","spr_alchemyresearchfacility_idle");
 };
 $hxClasses["buildings.AlchemyResearchFacility"] = buildings_AlchemyResearchFacility;
@@ -23761,7 +23761,7 @@ buildings_AlchemyResearchFacility.prototype = $extend(buildings_MaterialConverti
 	,set_materialTo: function(value) {
 		var productionAmount = value - this.city.materials.knowledge;
 		this.city.materials.knowledge += productionAmount;
-		this.city.simulation.stats.materialProduction[8][0] += knowledge;
+		this.city.simulation.stats.materialProduction[8][0] += productionAmount;
 		return this.city.materials.knowledge;
 	}
 	,get_bonusSpeed: function() {
