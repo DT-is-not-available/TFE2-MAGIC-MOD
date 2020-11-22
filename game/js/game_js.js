@@ -4551,7 +4551,7 @@ var CitySimulation = function(city,foregroundStage,inBuildingStage,inBuildingSta
 	this.resourcePriorityManager = new simulation_ResourcePriorityManager(city);
 	this.fishes = new simulation_FishManager(this);
 	this.buildingUpgradesToUpdate = [];
-    this.alchemylevel = 0;
+    this.alchemy = new simulation_Alchemy(city,this);
 	if(!Game.isLoading) {
 		this.initPossibleHobbies();
 	} else {
@@ -4636,6 +4636,7 @@ CitySimulation.prototype = {
 		this.houseAssigner.assignHouses();
 		this.happiness.update(timeMod);
 		this.eating.update(timeMod);
+		this.alchemy.update();
 	}
 	,updateWhilePaused: function() {
 		this.stats.update(0);
@@ -4863,6 +4864,7 @@ CitySimulation.prototype = {
 			queue.size += 4;
 		}
 		this.happiness.save(queue);
+		this.alchemy.save(queue);
 		this.bonuses.save(queue);
 		this.jobAssigner.save(queue);
 		this.eating.save(queue);
@@ -4982,6 +4984,7 @@ CitySimulation.prototype = {
 		this.houseAssigner.shouldUpdateHouses = true;
 		this.schoolAssigner.schoolsShouldBeUpdated = true;
 		this.happiness.load(queue);
+		this.alchemy.load(queue);
 		this.bonuses.load(queue);
 		this.jobAssigner.load(queue);
 		this.eating.load(queue);
@@ -11584,7 +11587,7 @@ buildings_MagicShow.prototype = $extend(buildings_Work.prototype,{
 		return 7;
 	}
 	,get_entertainmentQuality: function() {
-		return 120;
+		return 125;
 	}
 	,get_isOpenForExistingVisitors: function() {
 		return this.get_isOpen();
@@ -12214,7 +12217,7 @@ buildings_Beacon.prototype = $extend(Building.prototype,{
 		return 3;
 	}
 	,get_entertainmentQuality: function() {
-		return 100;
+		return 125;
 	}
 	,get_baseEntertainmentCapacity: function() {
 		return 50;
@@ -23728,6 +23731,215 @@ buildings_MachinePartsFactory.prototype = $extend(buildings_MaterialConvertingFa
 		}
 	}
 	,__class__: buildings_MachinePartsFactory
+});
+var buildings_AlchemyLab = function(game,stage,bgStage,city,world,position,worldPosition,id) {
+	this.materialsMadePerStepPerWorker = 0.0015;
+	buildings_MaterialConvertingFactory.call(this,game,stage,bgStage,city,world,position,worldPosition,id,"spr_alchemylab_frames","spr_alchemylab_idle");
+	this.conversionMode = 0;
+};
+$hxClasses["buildings.AlchemyLab"] = buildings_AlchemyLab;
+buildings_AlchemyLab.__name__ = ["buildings","AlchemyLab"];
+buildings_AlchemyLab.__super__ = buildings_MaterialConvertingFactory;
+buildings_AlchemyLab.prototype = $extend(buildings_MaterialConvertingFactory.prototype,{
+	get_normalEfficiency: function() {
+		return buildings_AlchemyLab.actualEfficiency;
+	}
+	,get_walkThroughCanViewSelfInThisBuilding: function() {
+		return false;
+	}
+	,get_possibleUpgrades: function() {
+		return [];
+	}
+	,get_possibleBuildingModes: function() {
+		return [buildingUpgrades_FactoryWorking,buildingUpgrades_FactoryDisabled];
+	}
+	,get_materialFrom: function() {
+		return this.city.materials.magic;
+	}
+	,set_materialFrom: function(value) {
+		var productionAmount = this.city.materials.magic - value;
+		this.city.materials.magic -= productionAmount;
+		this.city.simulation.stats.materialUsed[9][0] += productionAmount;
+		return this.city.materials.magic;
+	}
+	,get_materialTo: function() {
+		return this.city.materials[MaterialsHelper.findMaterialName(this.conversionMode)];
+	}
+	,set_materialTo: function(value) {
+		var productionAmount = value - this.city.materials[MaterialsHelper.findMaterialName(this.conversionMode)];
+		this.city.materials[MaterialsHelper.findMaterialName(this.conversionMode)] += productionAmount;
+		this.city.simulation.stats.materialProduction[this.conversionMode][0] += productionAmount;
+		return this.city.materials[MaterialsHelper.findMaterialName(this.conversionMode)];
+	}
+	,get_bonusSpeed: function() {
+		return 1;
+	}
+	,onBuild: function() {
+		buildings_MaterialConvertingFactory.prototype.onBuild.call(this);
+	}
+	,workAnimation: function(citizen,timeMod) {
+		if(citizen.relativeY != 10) {
+			if(this.workers.indexOf(citizen) == 0) {
+				citizen.setRelativePos(12,10);
+			} else {
+				citizen.setRelativePos(15,10);
+			}
+		}
+	}
+	,addWindowInfoLines: function() {
+		var _gthis = this;
+		buildings_MaterialConvertingFactory.prototype.addWindowInfoLines.call(this);
+		this.city.gui.windowAddInfoText(null,function() {
+			return "" + (_gthis.totalMaterialUsed | 0) + " mana used to make " + (_gthis.materialMade | 0) + " resources.";
+		});
+	}
+	,save: function(queue,shouldSaveDefinition) {
+		if(shouldSaveDefinition == null) {
+			shouldSaveDefinition = true;
+		}
+		buildings_MaterialConvertingFactory.prototype.save.call(this,queue);
+		if(shouldSaveDefinition) {
+			queue.addString(buildings_MachinePartsFactory.saveDefinition);
+		}
+	}
+	,load: function(queue,definition) {
+		buildings_MaterialConvertingFactory.prototype.load.call(this,queue);
+		if(definition == null) {
+			var byteToRead = queue.bytes.b[queue.readStart];
+			queue.readStart += 1;
+			if(byteToRead == 1) {
+				var intToRead = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var readPos = intToRead;
+				var stringLength = queue.bytes.getInt32(readPos);
+				definition = queue.bytes.getString(readPos + 4,stringLength);
+			} else {
+				var intToRead1 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var len = intToRead1;
+				var str = queue.bytes.getString(queue.readStart,len);
+				queue.readStart += len;
+				definition = str;
+			}
+		} else {
+			definition = definition;
+		}
+		var loadMap = new haxe_ds_StringMap();
+		var _g = 0;
+		var _g1 = definition.split("|");
+		while(_g < _g1.length) {
+			var varAndType = _g1[_g];
+			++_g;
+			if(varAndType == "") {
+				continue;
+			}
+			var varAndTypeArray = varAndType.split("$");
+			var res;
+			var _g2 = varAndTypeArray[1];
+			switch(_g2) {
+			case "Bool":
+				var intToRead2 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				if(intToRead2 == 1) {
+					res = true;
+				} else {
+					res = false;
+				}
+				break;
+			case "FPoint":
+				res = queue.readFPoint();
+				break;
+			case "Float":
+				var floatToRead = queue.bytes.getDouble(queue.readStart);
+				queue.readStart += 8;
+				res = floatToRead;
+				break;
+			case "Int":
+				var intToRead3 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				res = intToRead3;
+				break;
+			case "Point":
+				res = queue.readPoint();
+				break;
+			case "Rectangle":
+				res = queue.readRectangle();
+				break;
+			case "String":
+				var value;
+				var byteToRead1 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead1 == 1) {
+					var intToRead4 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos1 = intToRead4;
+					var stringLength1 = queue.bytes.getInt32(readPos1);
+					value = queue.bytes.getString(readPos1 + 4,stringLength1);
+				} else {
+					var intToRead5 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len1 = intToRead5;
+					var str1 = queue.bytes.getString(queue.readStart,len1);
+					queue.readStart += len1;
+					value = str1;
+				}
+				res = value;
+				break;
+			case "ds":
+				var res1;
+				var byteToRead2 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead2 == 1) {
+					var intToRead6 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos2 = intToRead6;
+					var stringLength2 = queue.bytes.getInt32(readPos2);
+					res1 = queue.bytes.getString(readPos2 + 4,stringLength2);
+				} else {
+					var intToRead7 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len2 = intToRead7;
+					var str2 = queue.bytes.getString(queue.readStart,len2);
+					queue.readStart += len2;
+					res1 = str2;
+				}
+				res = haxe_Unserializer.run(res1);
+				break;
+			default:
+				var typeName = _g2;
+				var resolvedEnum = Type.resolveEnum(typeName);
+				if(resolvedEnum != null) {
+					var res2;
+					var byteToRead3 = queue.bytes.b[queue.readStart];
+					queue.readStart += 1;
+					if(byteToRead3 == 1) {
+						var intToRead8 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var readPos3 = intToRead8;
+						var stringLength3 = queue.bytes.getInt32(readPos3);
+						res2 = queue.bytes.getString(readPos3 + 4,stringLength3);
+					} else {
+						var intToRead9 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var len3 = intToRead9;
+						var str3 = queue.bytes.getString(queue.readStart,len3);
+						queue.readStart += len3;
+						res2 = str3;
+					}
+					res = Type.createEnum(resolvedEnum,res2);
+				} else {
+					throw new js__$Boot_HaxeError("That type isn't supported while loading the game!");
+				}
+			}
+			var key = varAndTypeArray[0];
+			if(__map_reserved[key] != null) {
+				loadMap.setReserved(key,res);
+			} else {
+				loadMap.h[key] = res;
+			}
+		}
+	}
+	,__class__: buildings_AlchemyLab
 });
 var buildings_AlchemyResearchFacility = function(game,stage,bgStage,city,world,position,worldPosition,id) {
 	this.materialsMadePerStepPerWorker = 0.06;
@@ -37641,9 +37853,9 @@ gui_CityGUI.prototype = $extend(GUI.prototype,{
 					gui_AlchWindow.create(_gthis.city,_gthis,_gthis.innerWindowStage,_gthis.windowInner);
 				}
 			},function() {
-				_gthis.tooltip.setText("Alchemy","Your alchemy level is " + (Math.floor(stats6.alchemylevel)) + "","Alchemy");
+				_gthis.tooltip.setText("Alchemy","Your alchemy level is " + (Math.floor(stats6.alchemy.level)) + "","Alchemy Level");
 			},function() {
-				return Math.floor(stats6.alchemylevel) + " (" + ((stats6.alchemylevel - Math.floor(stats6.alchemylevel))*100) + "%)";
+				return Math.floor(stats6.alchemy.level) + " (" + Math.floor((stats6.alchemy.level - Math.floor(stats6.alchemy.level))*100) + "%)";
 			},"spr_alchemy",generalStatistics,20,function() {
 				return _gthis.windowRelatedTo == "alchLevel";
 			});
@@ -43733,16 +43945,23 @@ gui_AlchWindow.create = function(city,gui,stage,$window) {
 gui_AlchWindow.createWindow = function(city,gui,stage,$window) {
     $window.clear();
     gui.windowAddTitleText("Alchemy Level");
-    gui.windowAddInfoText("Your alchemy level is " + city.simulation.alchemylevel)
+	var tmp100 = "Your alchemy level is ";
+	tmp100+= ""+(Math.round(city.simulation.alchemy.level*1000)/1000);
+    gui.windowAddInfoText(tmp100);
     var _g = ($_=city.gui,$bind($_,$_.reloadWindow));
+    gui.windowAddBottomButtons();
     var city1 = city;
     var gui1 = gui;
     var stage1 = stage;
     var window1 = $window;
     var createWindowFunc = function() {
-        gui_WorkerDistributionWindow.createWindow(city1,gui1,stage1,window1);
+        gui_AlchWindow.createWindow(city1,gui1,stage1,window1);
+		return;
     };
-    gui.windowAddBottomButtons();
+	var tmp = function(){
+		_g(createWindowFunc);
+	}
+	$window.onUpdate = tmp;
 };
 var gui_WorkerDistributionWindow = function() { };
 $hxClasses["gui.WorkerDistributionWindow"] = gui_WorkerDistributionWindow;
@@ -53645,7 +53864,7 @@ simulation_Happiness.prototype = {
 		if(this.happiness == -1) {
 			this.set_happiness(this.actualHappiness);
 		}
-		var changeHappinessWith = 0.05 * timeMod;
+		var changeHappinessWith = 0.1 * timeMod;
 		if(Math.abs(this.actualHappiness - this.happiness) < changeHappinessWith) {
 			this.set_happiness(this.actualHappiness);
 		} else {
@@ -53850,10 +54069,10 @@ simulation_Happiness.prototype = {
 			}
 			this.medicalHappiness += thisMedicalPart / this.simulation.citizens.length;
 		}
-		this.entertainmentHappiness = Math.min(100,this.entertainmentHappiness + 0.01);
-		this.medicalHappiness = Math.min(100,this.medicalHappiness + 0.01);
+		this.entertainmentHappiness = Math.min(125,this.entertainmentHappiness + 0.01);
+		this.medicalHappiness = Math.min(125,this.medicalHappiness + 0.01);
 		var newHappiness = this.homeHappiness * 0.4 + this.entertainmentHappiness * 0.3 + this.schoolHappiness * 0.1 + this.medicalHappiness * 0.1 + this.purposeHappiness * 0.1;
-		newHappiness = Math.min(100,newHappiness + 0.01);
+		newHappiness = Math.min(125,newHappiness + 0.01);
 		this.actionSpeedModifierWithoutPenalties = newHappiness <= 50 ? 0.25 + newHappiness / 50 * 0.75 : 1 + (newHappiness - 50) / 50;
 		var foodShortage = this.simulation.eating.foodShortage;
 		if(foodShortage > 0) {
@@ -53884,7 +54103,7 @@ simulation_Happiness.prototype = {
 			var boost = _g15[_g14];
 			++_g14;
 			if(!boost.canGoOverMax) {
-				newHappiness = Math.min(100,newHappiness + boost.boost);
+				newHappiness = Math.min(125,newHappiness + boost.boost);
 			}
 		}
 		var _g16 = 0;
@@ -54202,6 +54421,196 @@ simulation_Happiness.prototype = {
 	}
 	,__class__: simulation_Happiness
 };
+var simulation_Alchemy = function(city,simulation1) {
+	this.city = city;
+	this.simulation = simulation1;
+	this.level = 0;
+};
+$hxClasses["simulation.Alchemy"] = simulation_Alchemy;
+simulation_Alchemy.__name__ = ["simulation","Alchemy"];
+simulation_Alchemy.prototype = {
+	update: function() {
+		var alchFacility = this.city.permanents.find(pm => pm.is(buildings_AlchemyResearchFacility));
+		if(alchFacility != undefined){
+			this.level = Math.max(this.level,alchFacility.materialMade / 200 / (this.level>=1 ? this.level : 1));
+		}
+	}
+	,rounded: function(scale) {
+		var num = this.level;
+		if(!("" + num).includes("e")) {
+			return +(Math.round(num + "e+" + scale)  + "e-" + scale);
+		} else {
+			var arr = ("" + num).split("e");
+			var sig = ""
+			if(+arr[1] + scale > 0) {
+				sig = "+";
+			}
+			return +(Math.round(+arr[0] + "e" + sig + (+arr[1] + scale)) + "e-" + scale);
+		}
+	}
+	,save: function(queue) {
+		this.saveBasics(queue);
+	}
+	,load: function(queue) {
+		this.loadBasics(queue);
+	}
+	,saveBasics: function(queue,shouldSaveDefinition) {
+		if(shouldSaveDefinition == null) {
+			shouldSaveDefinition = true;
+		}
+		if(shouldSaveDefinition) {
+			queue.addString(simulation_Alchemy.saveDefinition);
+		}
+		var value = this.level;
+		if(queue.size + 8 > queue.bytes.length) {
+			var oldBytes = queue.bytes;
+			queue.bytes = new haxe_io_Bytes(new ArrayBuffer((queue.size + 8) * 2));
+			queue.bytes.blit(0,oldBytes,0,queue.size);
+		}
+		queue.bytes.setDouble(queue.size,value);
+		queue.size += 8;
+	}
+	,loadBasics: function(queue,definition) {
+		if(definition == null) {
+			var byteToRead = queue.bytes.b[queue.readStart];
+			queue.readStart += 1;
+			if(byteToRead == 1) {
+				var intToRead = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var readPos = intToRead;
+				var stringLength = queue.bytes.getInt32(readPos);
+				definition = queue.bytes.getString(readPos + 4,stringLength);
+			} else {
+				var intToRead1 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				var len = intToRead1;
+				var str = queue.bytes.getString(queue.readStart,len);
+				queue.readStart += len;
+				definition = str;
+			}
+		} else {
+			definition = definition;
+		}
+		var loadMap = new haxe_ds_StringMap();
+		var _g = 0;
+		var _g1 = definition.split("|");
+		while(_g < _g1.length) {
+			var varAndType = _g1[_g];
+			++_g;
+			if(varAndType == "") {
+				continue;
+			}
+			var varAndTypeArray = varAndType.split("$");
+			var res;
+			var _g2 = varAndTypeArray[1];
+			switch(_g2) {
+			case "Bool":
+				var intToRead2 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				if(intToRead2 == 1) {
+					res = true;
+				} else {
+					res = false;
+				}
+				break;
+			case "FPoint":
+				res = queue.readFPoint();
+				break;
+			case "Float":
+				var floatToRead = queue.bytes.getDouble(queue.readStart);
+				queue.readStart += 8;
+				res = floatToRead;
+				break;
+			case "Int":
+				var intToRead3 = queue.bytes.getInt32(queue.readStart);
+				queue.readStart += 4;
+				res = intToRead3;
+				break;
+			case "Point":
+				res = queue.readPoint();
+				break;
+			case "Rectangle":
+				res = queue.readRectangle();
+				break;
+			case "String":
+				var value;
+				var byteToRead1 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead1 == 1) {
+					var intToRead4 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos1 = intToRead4;
+					var stringLength1 = queue.bytes.getInt32(readPos1);
+					value = queue.bytes.getString(readPos1 + 4,stringLength1);
+				} else {
+					var intToRead5 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len1 = intToRead5;
+					var str1 = queue.bytes.getString(queue.readStart,len1);
+					queue.readStart += len1;
+					value = str1;
+				}
+				res = value;
+				break;
+			case "ds":
+				var res1;
+				var byteToRead2 = queue.bytes.b[queue.readStart];
+				queue.readStart += 1;
+				if(byteToRead2 == 1) {
+					var intToRead6 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var readPos2 = intToRead6;
+					var stringLength2 = queue.bytes.getInt32(readPos2);
+					res1 = queue.bytes.getString(readPos2 + 4,stringLength2);
+				} else {
+					var intToRead7 = queue.bytes.getInt32(queue.readStart);
+					queue.readStart += 4;
+					var len2 = intToRead7;
+					var str2 = queue.bytes.getString(queue.readStart,len2);
+					queue.readStart += len2;
+					res1 = str2;
+				}
+				res = haxe_Unserializer.run(res1);
+				break;
+			default:
+				var typeName = _g2;
+				var resolvedEnum = Type.resolveEnum(typeName);
+				if(resolvedEnum != null) {
+					var res2;
+					var byteToRead3 = queue.bytes.b[queue.readStart];
+					queue.readStart += 1;
+					if(byteToRead3 == 1) {
+						var intToRead8 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var readPos3 = intToRead8;
+						var stringLength3 = queue.bytes.getInt32(readPos3);
+						res2 = queue.bytes.getString(readPos3 + 4,stringLength3);
+					} else {
+						var intToRead9 = queue.bytes.getInt32(queue.readStart);
+						queue.readStart += 4;
+						var len3 = intToRead9;
+						var str3 = queue.bytes.getString(queue.readStart,len3);
+						queue.readStart += len3;
+						res2 = str3;
+					}
+					res = Type.createEnum(resolvedEnum,res2);
+				} else {
+					throw new js__$Boot_HaxeError("That type isn't supported while loading the game!");
+				}
+			}
+			var key = varAndTypeArray[0];
+			if(__map_reserved[key] != null) {
+				loadMap.setReserved(key,res);
+			} else {
+				loadMap.h[key] = res;
+			}
+		}
+		if(__map_reserved["alchLevel"] != null ? loadMap.existsReserved("alchLevel") : loadMap.h.hasOwnProperty("alchLevel")) {
+			this.level=(__map_reserved["alchLevel"] != null ? loadMap.getReserved("alchLevel") : loadMap.h["alchLevel"]);
+		}
+	}
+	,__class__: simulation_Happiness
+};
 var simulation_HappinessBoost = function(boostUntil,boost,text) {
 	this.canGoOverMax = true;
 	this.boostUntil = boostUntil;
@@ -54494,7 +54903,7 @@ simulation_HouseAssigner.prototype = {
 						if(p != null && p["is"](buildings_House)) {
 							var thisHome = p;
 							var val = thisHome.get_attractiveness();
-							var quality = (val < 0 ? 0 : val > 100 ? 100 : val) | 0;
+							var quality = (val < 0 ? 0 : val > 125 ? 125 : val) | 0;
 							if(!p["is"](buildings_WorkWithHome)) {
 								if(thisHome.get_hasPrivateTeleporter() && thisHome.get_remainingCapacity() > 0) {
 									simulation_HouseAssigner.privateTeleportersLeft[world.worldGroup] += 1;
@@ -54548,7 +54957,7 @@ simulation_HouseAssigner.prototype = {
 						if(p1 != null && p1["is"](buildings_House)) {
 							var thisHome1 = p1;
 							var val3 = thisHome1.get_attractiveness();
-							var quality1 = (val3 < 0 ? 0 : val3 > 100 ? 100 : val3) | 0;
+							var quality1 = (val3 < 0 ? 0 : val3 > 125 ? 125 : val3) | 0;
 							if(this.transferFrom[quality1] > 0) {
 								var c = thisHome1.residents.length;
 								while(--c >= 0) {
@@ -59886,6 +60295,10 @@ buildings_LivingResearchCenter.knowledgePerWalk = 0.10799999999999998;
 buildings_LivingResearchCenter.saveDefinition = "totalKnowledgeGenerated$Float";
 buildings_MachinePartsFactory.spriteName = "spr_machinepartsfactory";
 buildings_MachinePartsFactory.saveDefinition = "";
+buildings_AlchemyLab.spriteName = "spr_alchemylab";
+buildings_AlchemyLab.saveDefinition = "";
+buildings_AlchemyLab.normalEfficiency = 11;
+buildings_AlchemyLab.actualEfficiency = 11;
 buildings_AlchemyResearchFacility.spriteName = "spr_alchemyresearchfacility";
 buildings_AlchemyResearchFacility.saveDefinition = "";
 buildings_MechanicalHouse.spriteName = "spr_mechanicalhouse";
@@ -60110,6 +60523,7 @@ simulation_BoostManager.saveDefinition = "boostLeft$Float";
 simulation_Eating.saveDefinition = "foodShortage$Float";
 simulation_Fish.saveDefinition = "type$Int|relativeX$Float|relativeY$Float";
 simulation_Happiness.saveDefinition = "happiness$Float|homeHappiness$Float|purposeHappiness$Float|entertainmentHappiness$Float|schoolHappiness$Float|medicalHappiness$Float|fullHappinessTime$Float|actualHappiness$Float|happinessEnthusiasmLevel$Int|lastShownVeryUnhappyWarning$Int|veryUnhappyFromDay$Int";
+simulation_Alchemy.saveDefinition = "alchLevel$Float";
 simulation_HappinessBoost.saveDefinition = "boostUntil$Float|boost$Float|text$String|canGoOverMax$Bool";
 simulation_HouseAssigner.privateTeleportersLeft = [];
 simulation_Stats.saveDefinition = "";

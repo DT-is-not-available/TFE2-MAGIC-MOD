@@ -373,6 +373,20 @@
         "jobs": 5
     },
     {
+        "className": "AlchemyLab",
+        "name": "Alchemy Lab",
+        "description": "Produces machine parts from stone. Three stone is needed to make one machine part.",
+        "food": 0,
+        "wood": -10,
+        "stone": -35,
+        "machineParts": 0,
+        "knowledge": -25,
+        "category": "Production",
+        "unlockedByDefault": true,
+        "specialInfo": [],
+        "jobs": 2
+    },
+    {
         "className": "Laboratory",
         "name": "Lab",
         "description": "Scientists gather knowledge here. Also has upgrades boosting adjacent farms and tree plantations.",
